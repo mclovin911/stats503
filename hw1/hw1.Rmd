@@ -1,0 +1,86 @@
+---
+title: "hw1"
+author: "Xingwen Wei"
+date: "February 3, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Question 1**
+```{r}
+library(ggplot2)
+
+x <- c(1:20)
+bias <- 1/x +0.1
+variance <- x^1.5/100 + 0.1
+Bayes_error <- 0.2
+test_error <- bias + variance + Bayes_error
+training_error <- x^(-0.5) - 0.2
+
+ggplot(data=data.frame(x, bias, variance, Bayes_error, training_error, test_error)) +xlab("Model Complexity") + ylab("Value") + geom_smooth(aes(x=x, y=bias, color = 'bias'), method=loess, se=F) + geom_smooth(aes(x=x, y=variance, color = 'variance'), method=loess, se=F) + geom_smooth(aes(x=x, y=Bayes_error, color = 'Bayes error'), method=loess, se=F) + geom_smooth(aes(x=x, y=test_error,  color = 'test error'), method=loess, se=F) +  geom_smooth(aes(x=x, y=training_error,color = 'training error'), method=loess, se=F) + scale_color_manual(name="Legend", values = c("Bayes error"="blue", "training error"='red', "test error"='orange', "bias"='black', "variance"='purple')) + scale_x_continuous(breaks=c(5, 15), labels=c("less flexible", "more flexible")) + theme(axis.ticks = element_blank(), axis.text.y = element_blank())
+
+```
+
+**Question 2**
+
+**a**. 
+When we have a large sized sample and a few predictors, we would expect the performance of a flexible method to be better. 
+The model variance will be small for all model because of the large sample size.
+The bias will be smaller with a more flexible model.
+Since we cannot do anything about the Bayes error, we should choose a more flexible model in this situation to achieve a better test error. 
+
+**b**. 
+When we have a small sized sample and many predictors, we would expect the performance of an inflexible method to be better. 
+The model variance will be large for all model because of the small sample size.
+The bias will be smaller with a more flexible model.
+However, since the sample size is small, there is high chance that the sample is not representative and the model learned from this sample will be far from the true model even with high flexibility. 
+Thus, we should choose an inflexible model in this situation to achieve a better test error. 
+
+
+**c**. 
+When the predictor and response have a highly non-linear relationship, we would expect the performance of a flexible method to be better. 
+We assume we have a large sample size because it will take a large sample to reach the conclusion that the relationship between predictor and response is not linear.
+The model variance will be small for all model because of the large sample size.
+The bias will be smaller with a more flexible model.
+Moreover, the non-linear relationship will be better represented in a more flexible model.
+Thus, we should choose a flexible model in this situation to achieve a better test error. 
+**d**. 
+When the variance of the error term is large, we have to get a model not too flexible and not too inflexible.
+We cannot decide whether a flexible or inflexible model will be better with only the given information. 
+
+**Question 3**
+
+**a**. 
+```{r}
+dist <- function(t, x){
+  sqrt((t[1]-x[1])^2+(t[2]-x[2])^2+(t[3]-x[3])^2)
+}
+
+test <- c(0,0,0)
+c1 <- list(0,3,0, 'red')
+c2 <- list(2,0,0, 'red')
+c3 <- list(0,1,3, 'red')
+c4 <- list(0,1,2, 'green')
+c5 <- list(-1,0,1, 'green')
+c6 <- list(1,1,2, 'red')
+obs <- c(c1, c2, c3, c4, c5, c6)
+
+for(x in (1:6)){sprintf("Euclidean distance to observation %f is: %f", x, dist(test, obs[[x]]))}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
