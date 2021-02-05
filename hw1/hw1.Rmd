@@ -91,6 +91,33 @@ pred(K)
 
 ```
 
+**b**. 
+When we have large training set and nonlinear relationship between predictor and response, we expect the best value for K to be small.
+As mentioned above on Question 2c, we want a more flexible model to represent the nonlinear relationship while maintaining a low model variance because of the large training sample size. 
+
+
+**Question 4**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
