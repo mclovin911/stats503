@@ -152,6 +152,10 @@ ggplot(data=explore, aes(x=Outcome, y=Value)) + geom_boxplot() + facet_wrap(.~Pr
 
 **KNN**. 
 
+In order to get most information, we use PMM to impute missing data in the test file after removing the two predictor variables not used in the training set.
+According to the KNN error plot, we would prefer $K=6$ as it gives the minimum testing error. 
+
+
 ```{r}
 library(mice)
 library(class)
@@ -197,7 +201,6 @@ result <- data.frame(train_error, test_error, k_range)
 ggplot(result, aes(x=1/k_range)) + geom_line(aes(y=train_error, color="train")) + geom_point(aes(y=train_error, color="train")) + geom_line(aes(y=test_error, color="test")) + geom_point(aes(y=test_error, color="test")) + xlab("Model Complexity (1/K)") + ylab("Error Rate") + scale_color_manual(name="Legend", values = c("test"="blue", "train"="red"))
 ```
 
-According to the KNN error plot, we would prefer $K=6$ as it gives the minimum testing error. 
 
 
 
