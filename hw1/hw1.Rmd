@@ -98,6 +98,111 @@ As mentioned above on Question 2c, we want a more flexible model to represent th
 
 **Question 4**
 
+**Data Preprocessing**. 
+```{r}
+train <- read.csv("C:/Users/xingw/Desktop/503/stats503/hw1/diabetes_train.csv", header=T)
+test <- read.csv("C:/Users/xingw/Desktop/503/stats503/hw1/diabetes_test.csv", header=T)
+
+```
+
+To get familiar with the data, we want to see a data summary first.
+Noticing the outcome is a binary label, we set it as a factor.
+Also, after detecting apparent anomalies in attribute "Glucose", "BloodPressure", "SkinThickness", "Insulin", and "BMI", we replace the impossible 0's with NA. 
+We have noted that about half of the observations for attribute "Insulin" and "SkinThickness" are missing, so we decided to not include this predictor in our model.
+Then we remove all the observations that is not complete. 
+
+```{r}
+train$Outcome <- factor(train$Outcome)
+
+
+summary(train)
+
+train$Glucose[train$Glucose == 0] <- NA
+train$BloodPressure[train$BloodPressure == 0] <- NA
+train$SkinThickness[train$SkinThickness == 0] <- NA
+train$Insulin[train$Insulin == 0] <- NA
+train$BMI[train$BMI == 0] <- NA
+
+
+summary(train)
+
+train_c <- train[complete.cases(train[,-c(4, 5)]),-c(4, 5)]
+
+
+```
+
+**Exploratory Data Analysis**. 
+From the correlation matrix of variables, we do not find any obvious signs for collinearities.
+
+```{r}
+library(GGally)
+
+```
+
+In order to understand the relationship between each predictor variable and the response, we use boxplot for each predictor against the outcome. 
+According to the boxplot, predictor variables "Pregnancies" and "Glucose" are more useful in predicting the outcome than other predictors. 
+```{r}
+library(tidyr)
+
+explore <- gather(data=train_c, key="Predictor", value="Value", -"Outcome")
+ggplot(data=explore, aes(x=Outcome, y=Value)) + geom_boxplot() + facet_wrap(.~Predictor, scales='free_y') 
+
+
+```
+
+**KNN**. 
+
+```{r}
+library(mice)
+library(class)
+
+# Standardize train data
+train_label <- train_c$Outcome
+train_x <- train_c[-7]
+train_mu <- colMeans(train_x)
+train_std <- sqrt(diag(var(train_x)))
+train_x <- scale(train_x, center=train_mu, scale=train_std)
+
+# Preprocess test data
+test$Glucose[test$Glucose == 0] <- NA
+test$BloodPressure[test$BloodPressure == 0] <- NA
+test$SkinThickness[test$SkinThickness == 0] <- NA
+test$Insulin[test$Insulin == 0] <- NA
+test$BMI[test$BMI == 0] <- NA
+# Impute missing test data
+test_temp <- mice(data=test[,-c(4, 5)], m=1, method='pmm')
+test_c <- complete(test_temp)
+# Standardize test data
+test$Outcome <- factor(test$Outcome)
+test_label <- test$Outcome
+test_x <- test_c[-7]
+test_x <- scale(test_x, center=train_mu, scale=train_std)
+
+# KNN prediction
+k_range <- 1:20
+train_error <- c()
+test_error <- c()
+
+for(this_k in k_range){
+  pred_train <- knn(train=train_x, test=train_x, cl=train_label, k=this_k)
+  pred_test <- knn(train=train_x, test=test_x, cl=train_label, k=this_k)
+  train_error[this_k] <- mean(pred_train != train_label)
+  test_error[this_k] <- mean(pred_test != test_label)
+  # Evaluation
+  # table(pred, test_label)
+}
+  
+result <- data.frame(train_error, test_error, k_range)
+
+ggplot(result, aes(x=1/k_range)) + geom_line(aes(y=train_error, color="train")) + geom_point(aes(y=train_error, color="train")) + geom_line(aes(y=test_error, color="test")) + geom_point(aes(y=test_error, color="test")) + xlab("Model Complexity (1/K)") + ylab("Error Rate") + scale_color_manual(name="Legend", values = c("test"="blue", "train"="red"))
+```
+
+According to the KNN error plot, we would prefer $K=6$ as it gives the minimum testing error. 
+
+
+
+
+
 
 
 
