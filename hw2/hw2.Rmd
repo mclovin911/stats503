@@ -180,6 +180,75 @@ cat(sprintf("The minimum train error is %.2f when K in knn is %d. \n", min(train
 
 Thus, the best K for KNN is in the neighborhood of 30, according to the cross validation and test errors.
 
+**Question 5**
+
+a)
+According to the model summary, only predictor "Lag2" is signiciant at 5% critical value.
+Since the null deviance is not much bigger than the residual deviance, we believe the model does not fit the data well.
+We get an AIC score of 1494.2 for this model.
+
+```{r, echo=FALSE}
+library(ISLR)
+data(Weekly)
+Weekly$Direction <- factor(Weekly$Direction)
+levels(Weekly$Direction) <- c(0, 1)
+log_mod <- glm(Direction~Lag1+Lag2, data=Weekly, family=binomial)
+
+summary(log_mod)
+```
+
+b)
+We get an AIC score of 1492.5 for this model.
+Since there are 1089 observations in total, it is reasonable that the model does not change much from the model summary from part a after omitting one observation.
+
+```{r, echo=FALSE}
+
+log_mod1 <- glm(Direction~Lag1+Lag2, data=Weekly[-1,], family=binomial)
+
+summary(log_mod1)
+```
+
+c)
+The model from part b predict $P(\text{Direction}="Up"|Lag1, Lag2)=0.57 > 0.5$.
+The prediction is wrong.
+
+```{r, echo=FALSE}
+library(faraway)
+x = predict(log_mod1, Weekly[1, ])
+ilogit(x)
+```
+
+d)
+
+
+```{r, echo=FALSE}
+post <- rep(0, length(Weekly))
+
+for(i in 1:length(Weekly)){
+  this_mod <- glm(Direction~Lag1+Lag2, data=Weekly[-i,], family=binomial)
+  x = predict(this_mod, Weekly[i, ])
+  post[i] <- ilogit(x)
+}
+
+pred <- as.integer(post > 0.5)
+
+error <- as.integer(pred != Weekly$Direction)
+
+mean(error)
+```
+
+e)
+We find that this model predicts wrong 44%. 
+
+
+
+
+
+
+
+
+
+
 
 
 
