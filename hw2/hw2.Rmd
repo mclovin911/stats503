@@ -1,0 +1,188 @@
+---
+title: "hw2"
+author: "Xingwen Wei"
+date: "February 20, 2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Question 1**
+
+We assume the conditional distribution for companies that issue a dividend or not are normally distributed.
+$$
+P(Y=Yes|X=4) = \frac{P(Y=Yes)\times P(X<4|Y=Yes)}{P(Y=Yes)\times P(X<4|Y=Yes)+P(Y=No)\times P(X>4|Y=No)}
+=\frac{0.8\times 0.16}{0.8\times 0.16 + 0.2 \times 0.25}=0.72
+$$
+
+**Question 2**
+
+a) 
+$$
+P(Y=c_1 | X=x)=\frac{e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}}{1+e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}}
+$$
+$$
+P(Y=c_2 | X=x)=\frac{1}{1+e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}}
+$$
+
+b)
+$$
+\begin{aligned}
+0.5 = \frac{e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}}{1+e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}} \\
+1 = e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}\\
+0 = -6+0.05\times \text{hours studied} + 3.5 \\
+\text{hours studied} = 50
+\end{aligned}
+$$
+
+**Question 3**
+
+a)
+According to the boxplot of each varaible with three types of wines, variables including Alcohol, Alcalinity, Flavanoids, Color, Dilution, and Proline appear to be most likely to be helpful in predicting Type as the three types are more separated in these variable boxplots.
+In order to get a closer look at these potentially useful varaibles and their interactions, we plot the pairwise scatterplot with repect to the wine type.
+Based on the pairwise scatterplot, we can see that the three wine types can almost be linearly separated by (Alcalinity, Flavanoids) and (Color, Dilution).
+
+```{r, echo=FALSE, warning=F}
+library(ggplot2)
+library(tidyr)
+wine_train <- read.csv("C:/Users/xingw/Desktop/503/stats503/hw2/wine_train.csv")
+wine_test <- read.csv("C:/Users/xingw/Desktop/503/stats503/hw2/wine_test.csv")
+wine_train$Type <- factor(wine_train$Type)
+wine_train_long <- gather(wine_train, "Key", "Value", -Type)
+ggplot(wine_train_long) + geom_boxplot(aes(x=Type, y=Value)) + facet_wrap(~Key, scales='free')
+pairs(wine_train[c('Alcohol', 'Alcalinity', 'Flavanoids', 'Color', 'Dilution', 'Proline')], col=c('blue', 'green', 'red')[wine_train$Type])
+```
+
+b)
+
+We first fit a LDA model, and we can see that the three types of wines are well separated by linear discriminant. 
+There is only one miss classification out of 55 test cases, resulting in a test error of 0.018. 
+
+```{r, echo=FALSE}
+library(MASS)
+wine_lda <- lda(Type ~ ., data=wine_train)
+plot(wine_lda, col=as.integer(wine_train$Type))
+lda_test <- predict(wine_lda, wine_test)
+table(predicted=lda_test$class, actual=wine_test$Type)
+lda_test_error = mean(lda_test$class!=wine_test$Type)
+```
+
+Then, we fit a QDA model.
+We noticed that there are two miss classifications, resulting in a test error of 0.036.
+QDA is more flexible than LDA, but it performed worse in this dataset because of both the small training sample and the near linear discriminant structure. 
+
+```{r, echo=FALSE}
+wine_qda <- qda(Type ~ ., data=wine_train)
+qda_test <- predict(wine_qda, wine_test)
+table(predicted=qda_test$class, actual=wine_test$Type)
+qda_test_error = mean(qda_test$class!=wine_test$Type)
+```
+
+Finally, we fit a Naive Bayes model.
+We noticed that there are two miss classifications, resulting in a test error of 0.036.
+Naive Bayes assumes that the conditional distribution of each variable is independent to others given the class.
+However, this is not really the case according to the pairwise scatterplot above where some pairs of variables look correlated.
+So it has a higher test error than LDA because of the violation of the assumptions. 
+
+```{r, echo=FALSE}
+library(e1071)
+wine_nb <- naiveBayes(Type ~ ., data=wine_train)
+nb_test <- predict(wine_nb, wine_test)
+table(predicted=nb_test, actual=wine_test$Type)
+nb_test_error = mean(nb_test!=wine_test$Type)
+```
+
+Therefore, we can compare the test error of each model. According to the Test Error table, we would conclude that LDA performs the best out of the three models in this dataset.
+
+```{r, echo=FALSE}
+data.frame('Model'=c('LDA', 'QDA', 'Naive Bayes'), 'Test Error'=c(lda_test_error, qda_test_error, nb_test_error))
+```
+
+
+**Question 4**
+By convention, we choose to do 10 fold cross validation. 
+
+
+```{r, echo=FALSE}
+library(class)
+theft_train <- read.csv("C:/Users/xingw/Desktop/503/stats503/hw2/theft_train.csv")
+theft_test <- read.csv("C:/Users/xingw/Desktop/503/stats503/hw2/theft_test.csv")
+theft_train_x <- theft_train[c('X', 'Y', 'hour')]
+theft_train_y <- theft_train$theft
+theft_test_x <- theft_test[c('X', 'Y', 'hour')]
+theft_test_y <- theft_test$theft
+
+# STD
+train_mean <- colMeans(theft_train_x)
+train_std <- sqrt(diag(var(theft_train_x)))
+theft_train_std <- scale(theft_train_x, center=train_mean, scale=train_std)
+theft_test_std <- scale(theft_test_x, center=train_mean, scale=train_std)
+
+# CV
+kfold_knn <- function(train, train_label, K, knn_k){
+  fold_size <- floor(nrow(train)/K)
+  cv_error <- rep(0, K)
+  for(i in 1:K){
+    if(i!=K){
+      cv_test_ind <- ((i-1)*fold_size+1) : (i*fold_size)
+    }else{
+      cv_test_ind <- ((i-1)*fold_size+1) : nrow(train)
+    }
+    cv_train <- train[-cv_test_ind, ]
+    cv_test <- train[cv_test_ind, ]
+    cv_train_mean <- colMeans(cv_train)
+    cv_train_std <- sqrt(diag(var(cv_train)))
+    cv_train_scaled <- scale(cv_train, center = cv_train_mean, scale=cv_train_std)
+    cv_test_scaled <- scale(cv_test, center = cv_train_mean, scale=cv_train_std)
+    cv_knn <- knn(cv_train_scaled, cv_test_scaled, train_label[-cv_test_ind], k=knn_k)
+    cv_error[i] = mean(cv_knn != train_label[cv_test_ind])
+  }
+  return (mean(cv_error))
+}
+
+set.seed(123)
+knn_k = seq(from=1, to=51, by=5)
+k_fold = 10
+
+train_errors <- rep(0, length(knn_k))
+cv_errors <- rep(0, length(knn_k))
+test_errors <- rep(0, length(knn_k))
+
+for(i in 1:length(knn_k)){
+  # Train
+  knn_train <- knn(theft_train_std, theft_train_std, theft_train_y, k=knn_k[i])
+  train_errors[i] <- mean(knn_train != theft_train_y)
+  
+  # CV
+  cv_errors[i] <- kfold_knn(theft_train_x, theft_train_y, k_fold, knn_k[i])
+  
+  # Test
+  knn_test <- knn(theft_train_std, theft_test_std, theft_train_y, k=knn_k[i])
+  test_errors[i] <- mean(knn_test != theft_test_y)
+}
+
+ggplot()+geom_line(aes(x=knn_k, y=cv_errors, color="cv error"))+geom_line(aes(x=knn_k, y=train_errors, color="train error") )+geom_line(aes(x=knn_k, y=test_errors, color="test error"))+xlab('K in KNN')+ylab('Error Rate')
+
+
+```
+
+
+```{r, echo=FALSE}
+cat(sprintf("The minimum cross validation error is %.2f when K in knn is %d.\n", min(cv_errors), knn_k[which.min(cv_errors)]))
+
+cat(sprintf("The minimum test error is %.2f when K in knn is %d. \n", min(test_errors), knn_k[which.min(test_errors)]))
+
+cat(sprintf("The minimum train error is %.2f when K in knn is %d. \n", min(train_errors), knn_k[which.min(train_errors)]))
+
+```
+
+Thus, the best K for KNN is in the neighborhood of 30, according to the cross validation and test errors.
+
+
+
+
+
+
+
