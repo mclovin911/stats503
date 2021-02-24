@@ -13,8 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 We assume the conditional distribution for companies that issue a dividend or not are normally distributed.
 $$
-P(Y=Yes|X=4) = \frac{P(Y=Yes)\times P(X<4|Y=Yes)}{P(Y=Yes)\times P(X<4|Y=Yes)+P(Y=No)\times P(X>4|Y=No)}
-=\frac{0.8\times 0.16}{0.8\times 0.16 + 0.2 \times 0.25}=0.72
+\begin{aligned}
+P(Y=Yes|X=4) = \frac{P(Y=Yes)\times P(X<4|Y=Yes)}{P(Y=Yes)\times P(X<4|Y=Yes)+P(Y=No)\times P(X>4|Y=No)}\\
+=\frac{0.8\times e^{-\frac{6^2}{72}}}{0.8\times e^{-\frac{6^2}{72}}+0.2 \times e^{-\frac{4^2}{72}}}
+=\frac{0.8\times 0.61}{0.8\times 0.61 + 0.2 \times 0.80}=0.75
+\end{aligned}
 $$
 
 **Question 2**
@@ -44,7 +47,7 @@ According to the boxplot of each varaible with three types of wines, variables i
 In order to get a closer look at these potentially useful varaibles and their interactions, we plot the pairwise scatterplot with repect to the wine type.
 Based on the pairwise scatterplot, we can see that the three wine types can almost be linearly separated by (Alcalinity, Flavanoids) and (Color, Dilution).
 
-```{r, echo=FALSE, warning=F}
+```{r, echo=FALSE, warning=F, out.width="60%", out.height="60%"}
 library(ggplot2)
 library(tidyr)
 wine_train <- read.csv("C:/Users/xingw/Desktop/503/stats503/hw2/wine_train.csv")
@@ -221,10 +224,10 @@ ilogit(x)
 d)
 
 
-```{r, echo=FALSE}
-post <- rep(0, length(Weekly))
+```{r}
+post <- rep(0, nrow(Weekly))
 
-for(i in 1:length(Weekly)){
+for(i in 1:nrow(Weekly)){
   this_mod <- glm(Direction~Lag1+Lag2, data=Weekly[-i,], family=binomial)
   x = predict(this_mod, Weekly[i, ])
   post[i] <- ilogit(x)
@@ -238,7 +241,7 @@ mean(error)
 ```
 
 e)
-We find that this model predicts wrong 44%. 
+We find that this model predicts wrong 45%. 
 
 
 
