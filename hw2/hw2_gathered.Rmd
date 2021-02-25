@@ -12,9 +12,16 @@ knitr::opts_chunk$set(echo = TRUE)
 **Question 1**
 
 We assume the conditional distribution for companies that issue a dividend or not are normally distributed.
+We made the following assumptions:
+$$X_1|Yes,\cdots,X_n|Yes \sim iid N(10,36)$$
+$$X_1|No,\cdots,X_n|No \sim iid N(0,36)$$
+
+
+$Y_1, \cdots, Y_n$ = Yes or No are bournulli variables with $P(Y = Yes) = 0.8$.
+
 $$
 \begin{aligned}
-P(Y=Yes|X=4) = \frac{P(Y=Yes)\times P(X<4|Y=Yes)}{P(Y=Yes)\times P(X<4|Y=Yes)+P(Y=No)\times P(X>4|Y=No)}\\
+P(Y=Yes|X=4) = \frac{P(Y=Yes)\times P(X=4|Y=Yes)}{P(Y=Yes)\times P(X=4|Y=Yes)+P(Y=No)\times P(X=4|Y=No)}\\
 =\frac{0.8\times e^{-\frac{6^2}{72}}}{0.8\times e^{-\frac{6^2}{72}}+0.2 \times e^{-\frac{4^2}{72}}}
 =\frac{0.8\times 0.61}{0.8\times 0.61 + 0.2 \times 0.80}=0.75
 \end{aligned}
@@ -23,22 +30,24 @@ $$
 **Question 2**
 
 a) 
+Let $X_1 = \text{hours studied}$ and $X_2 = \text{undergrad GPA}$
 $$
-P(Y=c_1 | X=x)=\frac{e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}}{1+e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}}
+P(Y=c_1 | X=x)=\frac{e^{-6+0.05\times X_1 + X_2}}{1+e^{-6+0.05\times X_1 + X_2}}
 $$
 $$
-P(Y=c_2 | X=x)=\frac{1}{1+e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}}
+P(Y=c_2 | X=x)=\frac{1}{1+e^{-6+0.05\times X_1 + X_2}}
 $$
 
 b)
 $$
 \begin{aligned}
-0.5 = \frac{e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}}{1+e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}} \\
-1 = e^{-6+0.05\times \text{hours studied} + \text{undergrad GPA}}\\
-0 = -6+0.05\times \text{hours studied} + 3.5 \\
-\text{hours studied} = 50
+0.5 = \frac{e^{-6+0.05\times X_1 + X_2}}{1+e^{-6+0.05\times X_1 + X_2}} \\
+1 = e^{-6+0.05\times X_1 + X_2}\\
+0 = -6+0.05\times X_1 + 3.5 \\
+X_1 = 50
 \end{aligned}
 $$
+So need 50 hours of study to get A of 50% chance.
 
 **Question 3**
 
@@ -106,7 +115,7 @@ data.frame('Model'=c('LDA', 'QDA', 'Naive Bayes'), 'Test Error'=c(lda_test_error
 
 **Question 4**
 By convention, we choose to do 10 fold cross validation. 
-After EDA, we find no anomalies.
+
 
 ```{r, echo=FALSE}
 library(class)
@@ -242,7 +251,6 @@ mean(error)
 
 e)
 We find that this model predicts wrong 45%. 
-
 
 
 
