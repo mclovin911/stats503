@@ -1,0 +1,136 @@
+---
+title: "hw3"
+author: "Xingwen Wei"
+date: "March 6, 2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+The true model is a polynomial of degree 3.
+
+```{r, echo=F}
+m <- matrix(c('high', 'low', 'low', 'low', 'low', 'high'), ncol=2, byrow=FALSE)
+colnames(m) <- c('Bias', 'Variance')
+rownames(m) <- c('Linear regression', 'Polynomial regression with degree 3', 'Polynomial regression with degree 10')
+as.table(m)
+```
+
+## Question 2
+
+### a
+
+As $\lambda \rightarrow \infty$, $\hat{g_1}$ will have all $g^{(3)}(x)=0$ and $\hat{g_2}$ will have all $g^{(4)}(x)=0$.
+So this is similar to constraining $\hat{g_1}$ to have degree less than 3 and $\hat{g_2}$ less than 4.
+Thus, $\hat{g_2}$ will always have smaller or equal training error than $\hat{g_1}$.
+
+### b
+
+On one hand, if the true curve has degree higher than 3, $\hat{g_1}$ will not be able to capture it at all, while $\hat{g_2}$ can capture it. So $\hat{g_2}$ will have the smaller test error in this case.
+On the other hand, if the true curve has degree smaller than 3, $\hat{g_2}$ may pick some noise up as signal and overfits the training data, while $\hat{g_1}$ will not. So $\hat{g_1}$ will have the smaller test error in this case.
+
+
+### c
+
+For $\lambda = 0$, $\hat{g_1} = \hat{g_2}$. So they will have the same training and test error.
+
+## Question 3
+
+### a
+
+Exploratory Data Analysis
+```{r, echo=F, warning=F}
+library(ggplot2)
+library(tidyr)
+library(GGally)
+summary(ozone)
+ozone_long <- gather(ozone, predictor, value, 2:4, factor_key = TRUE)
+ggplot(ozone_long, aes(y=value)) + geom_boxplot(fill='slateblue', alpha=0.2) + facet_wrap(vars(predictor), scales = 'free_y')
+```
+
+According to the model summary, the linear model we choose is
+$$
+\text{ozone}^{\frac{1}{3}}=0.002\times \text{radiation} + 0.045\times \text{temperature}-0.071\times\text{wind}+0.077
+$$
+This is not a very satisfactory model as the $R^2 = 0.63$.
+
+```{r, echo=F}
+ozone <- read.table("C:/Users/xingw/Desktop/503/stats503/hw3/ozone_data.txt", header=1)
+train <- sample(nrow(ozone), floor(nrow(ozone)*0.7))
+ozone$cbr <- ozone$ozone^(1/3)
+lmod <- lm(cbr~., data=ozone[train, ])
+summary(lmod)
+```
+
+### b
+
+We use LOOCV to find to optimal number of knots.
+According to the plot below, we find that we get the best result when number of knots is 2.
+
+```{r, echo=F}
+library(gam)
+set.seed(2021)
+#number_of_knots <- 2:10
+train_loo <- ozone[train, ]
+errors <- matrix(NA, nrow=nrow(train_loo), ncol=10)
+
+for(i in 1:nrow(train_loo)){
+  train1 <- train_loo[-i, ]
+  test1 <- train_loo[i, ]
+  for(k in 1:10){
+    #q <- seq(from=0, to=1, length.out=knot+2)
+    #q <- q[2:(length(q)-1)]
+    gam_mod <- gam(cbr~ns(radiation, k)+ns(temperature, k)+ns(wind, k), data=train1)
+    pred <- predict(gam_mod, test1)
+    errors[i, k] <- (test1$cbr-pred)^2
+  }
+}
+plot(x=1:10, y=apply(errors, 2, mean), 'o', xlab='number of knots', ylab='Loocv error')
+```
+
+### c
+
+The mean test error for linear model is 0.25.
+On the other hand, we get a test error of 0.23 with GAM.
+According to both residual plots, the error terms are roughly normally distributed around 0 with no apparent pattern.
+We believe the similar result from both methods indicates the additional knots may not be too helpful.
+
+```{r, echo=F}
+pred <- predict(lmod, ozone[-train, ])
+lm_mse <- sum((pred-ozone[-train, 'cbr'])^2)/nrow(ozone[-train, ])
+plot(pred-ozone[-train, 'cbr'], ylab=expression(Ozone^(1/3)), main='linear model residual plot')
+
+
+```
+
+
+```{r, echo=F}
+gam_mod <- gam(cbr~ns(radiation, 2)+ns(temperature, 2)+ns(wind, 2), data=ozone[train, ])
+gam_pred <- predict(gam_mod, ozone[-train, ])
+gam_mse <- sum((gam_pred-ozone[-train, 'cbr'])^2)/nrow(ozone[-train, ])
+plot(gam_pred-ozone[-train, 'cbr'], ylab=expression(Ozone^(1/3)), main='GAM residual plot')
+
+```
+
+### d
+
+According to the pairwise scatterplot, we find there is a rather strong linear relationship between temperature and wind and the cubic root of ozone, as corroberated by the correlation coefficients 0.75 and -0.6 respectively.
+One can argue that the radiation does not have a strong linear relationship with the response variable, with correlation coefficient of 0.42.
+However, it is clear that lower values of radiations are associated with lower values of cubic root of ozone and higher values of radiations are associated with higher values of cubic root of ozone.
+Therefore, we would not apply GAM in this dataset with about 100 observations without further strong evidence for nonlinearity.
+
+```{r, echo=F}
+ggpairs(ozone)
+plot(ozone$radiation, ozone$cbr, xlab='radiation', ylab=expression(ozone^(1/3)))
+```
+
+
+
+
+
+
+
