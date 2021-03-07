@@ -47,6 +47,7 @@ Exploratory Data Analysis
 library(ggplot2)
 library(tidyr)
 library(GGally)
+ozone <- read.table("C:/Users/xingw/Desktop/503/stats503/hw3/ozone_data.txt", header=1)
 summary(ozone)
 ozone_long <- gather(ozone, predictor, value, 2:4, factor_key = TRUE)
 ggplot(ozone_long, aes(y=value)) + geom_boxplot(fill='slateblue', alpha=0.2) + facet_wrap(vars(predictor), scales = 'free_y')
