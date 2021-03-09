@@ -95,8 +95,8 @@ plot(x=1:10, y=apply(errors, 2, mean), 'o', xlab='number of knots', ylab='Loocv 
 
 ### c
 
-The mean test error for linear model is 0.25.
-On the other hand, we get a test error of 0.23 with GAM.
+The mean test error for linear model is 0.312.
+On the other hand, we get a test error of 0.306 with GAM.
 According to both residual plots, the error terms are roughly normally distributed around 0 with no apparent pattern.
 We believe the similar result from both methods indicates the additional knots may not be too helpful.
 
