@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The true model is a polynomial of degree 3.
 
-```{r, echo=F}
+```{r}
 m <- matrix(c('high', 'low', 'low', 'low', 'low', 'high'), ncol=2, byrow=FALSE)
 colnames(m) <- c('Bias', 'Variance')
 rownames(m) <- c('Linear regression', 'Polynomial regression with degree 3', 'Polynomial regression with degree 10')
@@ -43,7 +43,7 @@ For $\lambda = 0$, $\hat{g_1} = \hat{g_2}$. So they will have the same training 
 ### a
 
 Exploratory Data Analysis
-```{r, echo=F, warning=F}
+```{r, warning=F}
 library(ggplot2)
 library(tidyr)
 library(GGally)
@@ -59,7 +59,7 @@ $$
 $$
 This is not a very satisfactory model as the $R^2 = 0.71$.
 
-```{r, echo=F}
+```{r}
 set.seed(123)
 ozone <- read.table("C:/Users/xingw/Desktop/503/stats503/hw3/ozone_data.txt", header=1)
 train <- sample(nrow(ozone), floor(nrow(ozone)*0.7))
@@ -71,9 +71,9 @@ summary(lmod)
 ### b
 
 We use LOOCV to find to optimal number of knots.
-According to the plot below, we find that we get the best result when number of knots is 2.
+According to the plot below, we find that we get the best result when degrees of freedom is 2.
 
-```{r, echo=F}
+```{r}
 library(gam)
 #number_of_knots <- 2:10
 train_loo <- ozone[train, ]
@@ -100,21 +100,18 @@ On the other hand, we get a test error of 0.306 with GAM.
 According to both residual plots, the error terms are roughly normally distributed around 0 with no apparent pattern.
 We believe the similar result from both methods indicates the additional knots may not be too helpful.
 
-```{r, echo=F}
+```{r}
+par(mfrow=c(1, 2))
 pred <- predict(lmod, ozone[-train, ])
 lm_mse <- sum((pred-ozone[-train, 'cbr'])^2)/nrow(ozone[-train, ])
 plot(pred-ozone[-train, 'cbr'], ylab='residual', main='linear model residual plot')
-
-```
-
-
-```{r, echo=F}
 gam_mod <- gam(cbr~ns(radiation, 2)+ns(temperature, 2)+ns(wind, 2), data=ozone[train, ])
 gam_pred <- predict(gam_mod, ozone[-train, ])
 gam_mse <- sum((gam_pred-ozone[-train, 'cbr'])^2)/nrow(ozone[-train, ])
 plot(gam_pred-ozone[-train, 'cbr'], ylab='residual', main='GAM residual plot')
 
 ```
+
 
 ### d
 
@@ -123,9 +120,14 @@ One can argue that the radiation does not have a strong linear relationship with
 However, it is clear that lower values of radiations are associated with lower values of cubic root of ozone and higher values of radiations are associated with higher values of cubic root of ozone.
 Therefore, we would not apply GAM in this dataset with about 100 observations without further strong evidence for nonlinearity.
 
-```{r, echo=F}
+```{r, out.height='80%', out.width='80%'}
 ggpairs(ozone)
 plot(ozone$radiation, ozone$cbr, xlab='radiation', ylab=expression(ozone^(1/3)))
+ts <- lm(ozone$cbr~ozone$radiation)
+pred1 <- predict(ts, ozone['radiation'])
+lines(x=ozone$radiation, y=pred1, col='red')
+par(mfrow=c(1, 3))
+plot.Gam(gam_mod)
 ```
 
 
