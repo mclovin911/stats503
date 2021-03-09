@@ -1,6 +1,6 @@
 ---
 title: "hw3"
-author: "Xingwen Wei"
+author: "Xingwen Wei, Xin Hu, Liding Li"
 date: "March 6, 2021"
 output: pdf_document
 ---
@@ -30,7 +30,7 @@ Thus, $\hat{g_2}$ will always have smaller or equal training error than $\hat{g_
 
 ### b
 
-On one hand, if the true curve has degree higher than 3, $\hat{g_1}$ will not be able to capture it at all, while $\hat{g_2}$ can capture it. So $\hat{g_2}$ will have the smaller test error in this case.
+On one hand, if the true curve has degree higher than or equal to 3, $\hat{g_1}$ will not be able to capture it at all, while $\hat{g_2}$ can capture it. So $\hat{g_2}$ will have the smaller test error in this case.
 On the other hand, if the true curve has degree smaller than 3, $\hat{g_2}$ may pick some noise up as signal and overfits the training data, while $\hat{g_1}$ will not. So $\hat{g_1}$ will have the smaller test error in this case.
 
 
@@ -55,15 +55,16 @@ ggplot(ozone_long, aes(y=value)) + geom_boxplot(fill='slateblue', alpha=0.2) + f
 
 According to the model summary, the linear model we choose is
 $$
-\text{ozone}^{\frac{1}{3}}=0.002\times \text{radiation} + 0.045\times \text{temperature}-0.071\times\text{wind}+0.077
+\text{ozone}^{\frac{1}{3}}=0.001\times \text{radiation} + 0.058\times \text{temperature}-0.066\times\text{wind}-0.852
 $$
-This is not a very satisfactory model as the $R^2 = 0.63$.
+This is not a very satisfactory model as the $R^2 = 0.71$.
 
 ```{r, echo=F}
+set.seed(123)
 ozone <- read.table("C:/Users/xingw/Desktop/503/stats503/hw3/ozone_data.txt", header=1)
 train <- sample(nrow(ozone), floor(nrow(ozone)*0.7))
 ozone$cbr <- ozone$ozone^(1/3)
-lmod <- lm(cbr~., data=ozone[train, ])
+lmod <- lm(cbr~radiation+temperature+wind, data=ozone[train, ])
 summary(lmod)
 ```
 
@@ -74,7 +75,6 @@ According to the plot below, we find that we get the best result when number of 
 
 ```{r, echo=F}
 library(gam)
-set.seed(2021)
 #number_of_knots <- 2:10
 train_loo <- ozone[train, ]
 errors <- matrix(NA, nrow=nrow(train_loo), ncol=10)
@@ -85,7 +85,7 @@ for(i in 1:nrow(train_loo)){
   for(k in 1:10){
     #q <- seq(from=0, to=1, length.out=knot+2)
     #q <- q[2:(length(q)-1)]
-    gam_mod <- gam(cbr~ns(radiation, k)+ns(temperature, k)+ns(wind, k), data=train1)
+    gam_mod <- gam(cbr~ns(radiation, (k+1))+ns(temperature, (k+1))+ns(wind, (k+1)), data=train1)
     pred <- predict(gam_mod, test1)
     errors[i, k] <- (test1$cbr-pred)^2
   }
@@ -103,8 +103,7 @@ We believe the similar result from both methods indicates the additional knots m
 ```{r, echo=F}
 pred <- predict(lmod, ozone[-train, ])
 lm_mse <- sum((pred-ozone[-train, 'cbr'])^2)/nrow(ozone[-train, ])
-plot(pred-ozone[-train, 'cbr'], ylab=expression(Ozone^(1/3)), main='linear model residual plot')
-
+plot(pred-ozone[-train, 'cbr'], ylab='residual', main='linear model residual plot')
 
 ```
 
@@ -113,7 +112,7 @@ plot(pred-ozone[-train, 'cbr'], ylab=expression(Ozone^(1/3)), main='linear model
 gam_mod <- gam(cbr~ns(radiation, 2)+ns(temperature, 2)+ns(wind, 2), data=ozone[train, ])
 gam_pred <- predict(gam_mod, ozone[-train, ])
 gam_mse <- sum((gam_pred-ozone[-train, 'cbr'])^2)/nrow(ozone[-train, ])
-plot(gam_pred-ozone[-train, 'cbr'], ylab=expression(Ozone^(1/3)), main='GAM residual plot')
+plot(gam_pred-ozone[-train, 'cbr'], ylab='residual', main='GAM residual plot')
 
 ```
 
