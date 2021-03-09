@@ -57,7 +57,6 @@ According to the model summary, the linear model we choose is
 $$
 \text{ozone}^{\frac{1}{3}}=0.001\times \text{radiation} + 0.058\times \text{temperature}-0.066\times\text{wind}-0.852
 $$
-This is not a very satisfactory model as the $R^2 = 0.71$.
 
 ```{r}
 set.seed(123)
@@ -71,7 +70,9 @@ summary(lmod)
 ### b
 
 We use LOOCV to find to optimal number of knots.
-According to the plot below, we find that we get the best result when degrees of freedom is 2.
+According to the plot below, we find that we get the best result when the number of knots is 2.
+Based on the fitted splines plot of each variables, we find that temperature is linear where radiation and wind are not.
+
 
 ```{r}
 library(gam)
@@ -90,7 +91,11 @@ for(i in 1:nrow(train_loo)){
     errors[i, k] <- (test1$cbr-pred)^2
   }
 }
-plot(x=1:10, y=apply(errors, 2, mean), 'o', xlab='number of knots', ylab='Loocv error')
+plot(x=2:11, y=apply(errors, 2, mean), 'o', xlab='number of knots', ylab='Loocv error')
+
+gam_mod <- gam(cbr~ns(radiation, 2)+ns(temperature, 2)+ns(wind, 2), data=ozone[train, ])
+par(mfrow=c(1, 3))
+plot.Gam(gam_mod)
 ```
 
 ### c
@@ -99,13 +104,14 @@ The mean test error for linear model is 0.312.
 On the other hand, we get a test error of 0.306 with GAM.
 According to both residual plots, the error terms are roughly normally distributed around 0 with no apparent pattern.
 We believe the similar result from both methods indicates the additional knots may not be too helpful.
+We suspect that the non-linearity we observed in fitted spline plots above is a result of small sample size.
 
 ```{r}
 par(mfrow=c(1, 2))
 pred <- predict(lmod, ozone[-train, ])
 lm_mse <- sum((pred-ozone[-train, 'cbr'])^2)/nrow(ozone[-train, ])
 plot(pred-ozone[-train, 'cbr'], ylab='residual', main='linear model residual plot')
-gam_mod <- gam(cbr~ns(radiation, 2)+ns(temperature, 2)+ns(wind, 2), data=ozone[train, ])
+
 gam_pred <- predict(gam_mod, ozone[-train, ])
 gam_mse <- sum((gam_pred-ozone[-train, 'cbr'])^2)/nrow(ozone[-train, ])
 plot(gam_pred-ozone[-train, 'cbr'], ylab='residual', main='GAM residual plot')
@@ -126,8 +132,7 @@ plot(ozone$radiation, ozone$cbr, xlab='radiation', ylab=expression(ozone^(1/3)))
 ts <- lm(ozone$cbr~ozone$radiation)
 pred1 <- predict(ts, ozone['radiation'])
 lines(x=ozone$radiation, y=pred1, col='red')
-par(mfrow=c(1, 3))
-plot.Gam(gam_mod)
+
 ```
 
 
