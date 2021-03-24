@@ -1,0 +1,246 @@
+---
+title: "Stats 503 Homework 4"
+author: "Xingwen Wei"
+date: "March 23, 2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1
+
+By the definition of conditional expectation,
+
+$$
+\begin{aligned}
+f^*(x)&=argmin_{f(x)}E_{Y|x}(e^{-Yf(x)})\\
+&= argmin_{f(x)}e^{-f(x)}P(Y=1|x) + e^{f(x)}P(Y=-1|x)
+\end{aligned}
+$$
+
+We can find argmin f(x) by seeting the derivative of above equation to zero.
+
+$$
+\begin{aligned}
+\frac{d}{df}e^{-f(x)}P(Y=1|x) + e^{f(x)}P(Y=-1|x)&=0\\
+-e^{-f(x)}P(Y=1|x) + e^{f(x)}P(Y=-1|x)&=0\\
+-P(Y=1|x) + e^{2f(x)}P(Y=-1|x)&=0\\
+e^{2f(x)}&=\frac{P(Y=1|x)}{P(Y=-1|x)}\\
+f(x)&=\frac{1}{2}ln(\frac{P(Y=1|x)}{P(Y=-1|x)})\\
+\end{aligned}
+$$
+
+Thus, we find that the minimizer of population exponential loss is one-half of the log odds. 
+
+## Q2
+
+
+# a
+We use cross validation to find optimal cp to build a tree.
+
+```{r}
+library(rpart)
+
+# Read in data
+train = read.csv("C:/Users/xingw/Desktop/503/stats503/hw4/bank_marketing_train.csv")
+tree1_cv = rpart(deposit ~ ., data=train, parms=list(split='gini'), method='class')
+plotcp(tree1_cv)
+```
+
+The summary of test result is as following.
+
+```{r}
+tree1 = rpart(deposit ~ ., data=train, parms=list(split='gini'), method='class', cp=0.016)
+test = read.csv("C:/Users/xingw/Desktop/503/stats503/hw4/bank_marketing_test.csv")
+tree1_pred = predict(tree1, test, type='class')
+t = table(tree1_pred, test$deposit)
+t
+```
+```{r}
+test_stats <- function(t){
+  tm = (t[2, 1] + t[1, 2])/nrow(test)
+  nm = t[2, 1] / (t[1, 1] + t[2, 1])
+  ym = t[1, 2] / (t[1, 2] + t[2, 2])
+  tree_m = matrix(c(tm, nm, ym), ncol=3, byrow=TRUE)
+  colnames(tree_m) = c('Total Misclassification', 'No Misclassification', 'Yes Misclassification')
+  rownames(tree_m) = 'Percentage'
+  tree_t = as.table(tree_m)
+  tree_t
+}
+
+```
+
+```{r}
+test_stats(t)
+```
+
+# b
+We limit the maximum terminal nodes = 8 by constraining on the depth = 3.
+And use cross validation to find optimal cp.
+
+```{r}
+tree2_cv = rpart(deposit ~ ., data=train, parms=list(split='gini'), method='class', control=list(maxdepth=3))
+plotcp(tree2_cv)
+ 
+```
+
+The variables used are 'duration' and 'contact'.
+
+```{r}
+tree2_cv = rpart(deposit ~ ., data=train, parms=list(split='gini'), method='class', control=list(maxdepth=3, cp=0.03))
+library(rpart.plot)
+plot(tree2_cv)
+text(tree2_cv, pretty=0)
+```
+
+#c 
+
+
+```{r}
+library(randomForest)
+rf = randomForest(deposit ~ ., data=train, importance=TRUE, ntree=500)
+```
+
+The test summary is as following.
+```{r}
+rf_pred = predict(rf, test)
+t = table(rf_pred, test$deposit)
+t
+```
+
+```{r}
+test_stats(t)
+```
+
+We can use the variable-importance to interpret their effectiveness in the tree.
+We find 'duration' is the most important variable.
+
+```{r}
+importance(rf)
+```
+
+As long as mtry is greater than four, the error rate is about the same.
+
+```{r}
+mt = c(1, 4, 7, 10, 13, 16)
+error = rep(NA, 6)
+for(i in 1:6){
+  rf_t = randomForest(deposit ~ ., data=train, importance=TRUE, ntree=500, mtry=mt[i])
+  rf_t_pred = predict(rf_t, test, type='class')
+  error[i] = mean(rf_t_pred!=test$deposit)
+}
+plot(x=mt, y=error, xlab='mtry', ylab='error rate')
+```
+
+We find that the test error is smallest when ntree is around 1000.
+Although the error rate is higher when ntree is 1500, we believe this is caused by the realization of this particular test sample.
+We believe in general, the more trees the better if computation power is not a concern.
+
+```{r}
+nt = c(100, 500, 1000, 1500)
+error = rep(NA, 4)
+for(i in 1:4){
+  rf_t = randomForest(deposit ~ ., data=train, importance=TRUE, ntree=nt[i])
+  rf_t_pred = predict(rf_t, test, type='class')
+  error[i] = mean(rf_t_pred!=test$deposit)
+}
+plot(x=nt, y=error, xlab='ntree', ylab='error rate')
+
+```
+
+We find the test error is smallest when nodesize is around 50.
+We believe this is a paired tuning parameter with ntree.
+The smaller nodesize is, the less the bias becomes for each subtree.
+While the larger ntree is, the less the variance becomes for the forest.
+This plot indicates that we will receive a smallest test error with nodesize 50 when we have 500 trees in this particular realization of sample.
+
+```{r}
+ns = c(1, 10, 50, 100, 500, 1000)
+error = rep(NA, 6)
+for(i in 1:6){
+  rf_t = randomForest(deposit ~ ., data=train, importance=TRUE, ntree=500, nodesize=ns[i])
+  rf_t_pred = predict(rf_t, test, type='class')
+  error[i] = mean(rf_t_pred!=test$deposit)
+}
+plot(x=ns, y=error, xlab='nodesize', ylab='error rate')
+
+```
+
+
+#d
+
+```{r}
+library(gbm)
+train$deposit = ifelse(train$deposit == 'yes', 1, 0)
+test$deposit = ifelse(test$deposit == 'yes', 1, 0)
+boost = gbm(deposit ~ ., data=train, distribution='adaboost', n.trees=5000, interaction.depth = 3, shrinkage=0.1)
+summary(boost)
+```
+
+The test summary is as following.
+```{r}
+boost_pred_response = predict(boost, test, n.trees=5000, type='response')
+boost_pred = ifelse(boost_pred_response>0.5, 1, 0)
+t = table(boost_pred, test$deposit)
+t
+```
+
+```{r}
+test_stats(t)
+```
+
+We find the test error smallest when n.trees is around 500.
+This indicates that we would have learned enough at 500th iteration and the following iterations may not be necessary.
+
+```{r}
+nt = c(1, 50, 100, 500, 1000, 5000)
+error = rep(NA, 6)
+for(i in 1:6){
+  boost_t_response = predict(boost, test, n.trees=nt[i], type='response')
+  boost_t_pred = ifelse(boost_t_response>0.5, 1, 0)
+  error[i] = mean(boost_t_pred!=test$deposit)
+}
+plot(x=nt, y=error, xlab='ntree', ylab='error rate')
+```
+
+We find the test error is smallest when interaction.depth is around 3.
+When the interaction.depth is higher, the model complexity becomes higher, so as the variance.
+We believe a interaction.depth is around 3 may be the best choice in this sample.
+
+```{r}
+id = c(1, 3, 5, 7)
+error = rep(NA, 4)
+for(i in 1:4){
+  boost = gbm(deposit ~ ., data=train, distribution='adaboost', n.trees=500, interaction.depth = id[i], shrinkage=0.1)
+  boost_t_response = predict(boost, test, n.trees=500, type='response')
+  boost_t_pred = ifelse(boost_t_response>0.5, 1, 0)
+  error[i] = mean(boost_t_pred!=test$deposit)
+}
+plot(x=id, y=error, xlab='interaction.depth', ylab='error rate')
+```
+
+We find the test error is smallest when the shrinkage is around 0.1.
+In general, the shrinkage is paired with the n.trees, where shrinkage controls the learning rate while n.trees controls how many times to learn.
+In our Adaboost model, we find that shrinkage = 0.1 is a good match with n.trees = 500 for this sample.
+
+```{r}
+sh = c(1, 0.5, 0.1, 0.01)
+error = rep(NA, 4)
+for(i in 1:4){
+  boost = gbm(deposit ~ ., data=train, distribution='adaboost', n.trees=500, interaction.depth = 3, shrinkage=sh[i])
+  boost_t_response = predict(boost, test, n.trees=500, type='response')
+  boost_t_pred = ifelse(boost_t_response>0.5, 1, 0)
+  error[i] = mean(boost_t_pred!=test$deposit)
+}
+plot(x=sh, y=error, xlab='shrinkage', ylab='error rate')
+```
+
+
+
+
+
+
+
+

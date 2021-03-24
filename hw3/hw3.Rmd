@@ -71,7 +71,7 @@ summary(lmod)
 ### b
 
 We use LOOCV to find to optimal number of knots.
-According to the plot below, we find that we get the best result when $\lambda=3$.
+According to the LOOCV, we find that we get the best result when $\lambda=3$.
 Based on the fitted splines plot of each variables, we find that temperature looks linear where radiation and wind does not.
 
 ```{r, warning=F}
@@ -88,8 +88,6 @@ for(i in 1:nrow(train_loo)){
     errors[i, k] <- (test1$cbr-pred)^2
   }
 }
-plot(x=ss, y=apply(errors, 2, mean), 'o', xlab='number of knots', ylab='Loocv error')
-
 gam_mod <- gam(cbr~s(radiation, 3)+s(temperature, 3)+s(wind, 3), data=ozone[train, ])
 par(mfrow=c(1, 3))
 plot.Gam(gam_mod)
